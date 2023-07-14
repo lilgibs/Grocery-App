@@ -8,6 +8,10 @@ import { IoMdRemoveCircle } from 'react-icons/io';
 
 import Select from 'react-select';
 import axios from 'axios';
+import { checkLoginAdmin } from '../features/adminSlice';
+import { useNavigate } from 'react-router-dom';
+import { fetchCategories } from '../api/CategoryApi';
+import { fetchProducts } from '../api/AdminProductsApi';
 
 function AddProduct() {
   const [loading, setLoading] = useState(true);
@@ -18,41 +22,23 @@ function AddProduct() {
   const [isNewOption, setIsNewOption] = useState(false);
   const [imagePreviews, setImagePreviews] = useState([]);
 
-  const adminStoreId = useSelector(state => state.admin.admin.store_id);
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const adminToken = localStorage.getItem('admin_token');
+  const role = useSelector(state => state.admin.admin.role);
+  const adminStoreId = useSelector(state => state.admin.admin.store_id);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/admin/products/categories/');
-      console.log(response.data.data)
-
-      const categories = response.data.data
-
-      const options = categories.map((category) => ({
-        value: category.product_category_id,
-        label: category.product_category_name,
-      }));
-      setCategoryOptions(options);
-    } catch (error) {
-      console.error(error);
+  const getCategoriesData = async () => {
+    const response = await fetchCategories();
+    if (response) {
+      setCategoryOptions(response.formattedCategories);
     }
   };
 
-  const fetchProductOptions = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/admin/products/'); // Ganti dengan endpoint yang sesuai untuk mengambil data produk dari database
-      console.log(response)
-
-      const products = response.data.products;
-
-      const options = products.map((product) => ({
-        value: product.product_id,
-        label: product.product_name,
-      }));
-      setProductOptions(options);
-      // setProductOptions(products.map(({ product_id, product_name }) => ({ value: product_id, label: product_name })));
-    } catch (error) {
-      console.error(error);
+  const getProductsData = async () => {
+    const response = await fetchProducts(adminToken);
+    if (response) {
+      setProductOptions(response)
     }
   };
 
@@ -67,38 +53,30 @@ function AddProduct() {
     setFieldValue('product_images', newImages);
   };
 
-  // useEffect(() => {
-  //   const token = localStorage.getItem('admin_token');
-
-  //   if (token) { // check if the admin is logged in
-  //     dispatch(checkLoginAdmin(token));
-  //   }
-  //   else { // set loading to false if no token is found     
-  //     setLoading(false);
-  //   }
-  // }, [dispatch]);
-
-  // useEffect(() => {
-  //   if (role !== null) {
-  //     setLoading(false);
-  //   }
-  // }, [role]);
-
-  // // useEffect(() => {
-  // //   if (!loading && role !== 1) {
-  // //     navigate('/');
-  // //   }
-  // else {
-  // fetchCategories();
-  // fetchProductOptions(); 
-  // }
-  // // }, [role, navigate, loading]);
+  useEffect(() => {
+    adminToken ? dispatch(checkLoginAdmin(adminToken)) : setLoading(false);
+  }, [dispatch]);
 
   useEffect(() => {
-    fetchCategories();
-    fetchProductOptions(); // Memuat data produk dari database saat komponen dimount
-  }, []);
+    if (role !== null) {
+      setLoading(false);
+    }
+  }, [role]);
 
+  useEffect(() => {
+    if (!loading && (role != 99 && role !== 1)) {
+      navigate('/');
+    }
+    else {
+      getCategoriesData()
+      getProductsData();
+    }
+  }, [role, navigate, loading]);
+
+  // useEffect(() => {
+  //   fetchCategories();
+  //   fetchProductOptions(); // Memuat data produk dari database saat komponen dimount
+  // }, []);
 
   const getValidationSchema = () => {
     if (isNewOption) {
@@ -112,6 +90,8 @@ function AddProduct() {
         product_description: Yup.string()
           .required('Required'),
         product_price: Yup.number()
+          .required('Required'),
+        product_weight: Yup.number()
           .required('Required'),
         quantity_in_stock: Yup.number()
           .required('Required'),
@@ -142,6 +122,10 @@ function AddProduct() {
     </div>
   );
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="w-[95%] sm:max-w-md md:max-w-xl flex-col mx-auto mt-5">
       <Formik
@@ -152,6 +136,7 @@ function AddProduct() {
           product_name: null,
           product_description: '',
           product_price: '',
+          product_weight: '',
           quantity_in_stock: '',
           product_images: []
         }}
@@ -203,14 +188,12 @@ function AddProduct() {
                   setIsNewOption(selectedOption && selectedOption.__isNew__);
                   setFieldValue('product_name', selectedOption ? selectedOption.label : '');
                 }}
-              // onBlur={() => {
-              //   setFieldValue('product_name', '');
-              // }}
               />
               <ErrorMessage name="product_name" component="div" className="text-red-500 text-xs italic" />
             </div>
             <CustomInput name="product_description" type="text" label="Product Description" disabled={!isNewOption} />
             <CustomInput name="product_price" type="number" label="Product Price" disabled={!isNewOption} />
+            <CustomInput name="product_weight" type="number" label="Product Weight" disabled={!isNewOption} />
             <CustomInput name="quantity_in_stock" type="number" label="Product Quantity" />
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="product_images" disabled={!isNewOption}>

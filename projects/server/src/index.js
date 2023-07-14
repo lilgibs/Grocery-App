@@ -10,7 +10,17 @@ const {
   addressRoutes,
   cityRoutes,
   provinceRoutes,
-  adminProductRoutes } = require("./routes");
+  adminProductRoutes,
+  productRoutes,
+  profileRoutes,
+  cartRoutes,
+  orderRoutes,
+  adminDashboarRoutes,
+  adminOrderRoutes,
+  discountRoutes,
+  voucherRoutes,
+  stockHistoryRoutes,
+} = require("./routes");
 const path = require("path");
 
 require("./config/db.js");
@@ -39,11 +49,20 @@ app.use("/uploads", express.static(join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin/products", adminCategoryRoutes);
+app.use("/api/admin/dashboard", adminDashboarRoutes);
 app.use("/api", storeRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/cities", cityRoutes);
 app.use("/api/provinces", provinceRoutes);
-app.use('/api/admin/products', adminProductRoutes);
+app.use("/api/admin/products", adminProductRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/profiles", profileRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/order", orderRoutes);
+app.use("/api/admin/order", adminOrderRoutes);
+app.use("/api/admin/discounts", discountRoutes);
+app.use("/api/admin/vouchers", voucherRoutes);
+app.use("/api/admin/stock-histories", stockHistoryRoutes);
 
 // ===========================
 

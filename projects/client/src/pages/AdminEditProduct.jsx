@@ -1,42 +1,256 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom'
-import { fetchProduct } from '../features/productSlice';
+import { useNavigate, useParams } from 'react-router-dom'
+import { deleteImage, fetchProduct, updateProduct, uploadImage } from '../features/productSlice';
+import { checkLoginAdmin } from '../features/adminSlice';
+import { ErrorMessage, Field, Form, Formik, useFormikContext } from 'formik';
+import * as Yup from 'yup';
+import { fetchCategories } from '../api/CategoryApi';
+import Select from 'react-select';
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  Button,
+  useDisclosure,
+} from '@chakra-ui/react'
+import AdminIncreaseStockModal from '../components/AdminIncreaseStockModal';
+import AdminDecreaseStockModal from '../components/AdminDecreaseStockModal';
+import { FaSave, FaPen, FaTrash } from 'react-icons/fa';
 
 function AdminEditProduct() {
-  const [product, setProduct] = useState(null)
-  const { product_id } = useParams();
+  const { productId } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [selectedStoreId, setSelectedStoreId] = useState(null);
+
+  const { isOpen: isIncreaseOpen, onOpen: onIncreaseOpen, onClose: onIncreaseClose } = useDisclosure();
+  const { isOpen: isDecreaseOpen, onOpen: onDecreaseOpen, onClose: onDecreaseClose } = useDisclosure();
 
   const dispatch = useDispatch();
-  const productId = useSelector(state => state.product.product.product_id);
-  const productCategoryId = useSelector(state => state.product.product.product_category_id);
-  const productName = useSelector(state => state.product.product.product_name);
-  const productDescription = useSelector(state => state.product.product.product_description);
-  const productPrice = useSelector(state => state.product.product.product_price);
-  const productImages = useSelector(state => state.product.product.product_images);
+  const navigate = useNavigate()
+  const role = useSelector(state => state.admin.admin.role);
+  const product = useSelector(state => state.product.product);
+  const productIsLoading = useSelector(state => state.product);
+  const adminToken = localStorage.getItem('admin_token');
 
+  const [images, setImages] = useState(Array(3).fill(null));
+
+  const validationSchema = Yup.object().shape({
+    product_id: Yup.string().required('Required'),
+    product_name: Yup.string().required('Required'),
+    product_description: Yup.string().required('Required'),
+    product_price: Yup.number().required('Required')
+  });
+
+  const handleImageUpload = async (event, index) => {
+    const file = event.target.files[0];
+
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      alert('Only JPEG/JPG/PNG files are supported');
+      return;
+    }
+
+    if (file.size > 1000000) { // size limit 1MB
+      alert('Maximum size is 1MB');
+      return;
+    }
+
+    const imageId = images[index]?.product_image_id; // Get the image id, if it exists
+    dispatch(uploadImage(file, productId, imageId)); // dispatch the thunk
+  }
 
   useEffect(() => {
-    dispatch(fetchProduct(product_id));
-  }, [dispatch, product_id]);
+    adminToken ? dispatch(checkLoginAdmin(adminToken)) : setLoading(false);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (role !== null) {
+      setLoading(false);
+    }
+  }, [role]);
+
+  useEffect(() => {
+    if (!loading && (role !== 99 && role !== 1)) {
+      navigate('/');
+    } else {
+      dispatch(fetchProduct(productId));
+    }
+  }, [role, navigate, loading, productId, dispatch]);
+
+  useEffect(() => {
+    if (product) {
+      const imagesArray = [...product.product_images, ...Array(3 - product.product_images.length).fill(null)];
+      setImages(imagesArray);
+    }
+  }, [product]);
+
+  useEffect(() => {
+    const getCategories = async () => {
+      const result = await fetchCategories();
+      setCategories(result.formattedCategories);
+    };
+
+    getCategories();
+  }, []);
+
+  const CustomInput = ({ label, name, type = 'text', disabled = false, options = null, children }) => {
+    const { setFieldValue, values } = useFormikContext();
+    return (
+      <div className="mb-4 md:flex md:flex-row">
+        <label className="md:w-1/4 block text-gray-700 text-sm font-bold mb-2 " htmlFor={name}>
+          {label}
+        </label>
+        <div className='md:w-3/4'>
+          {options ? (
+            <Select
+              className="basic-single shadow"
+              classNamePrefix="select"
+              isDisabled={false}
+              isLoading={false}
+              isClearable={true}
+              isRtl={false}
+              isSearchable={true}
+              name={name}
+              options={options}
+              value={options.find(option => option.value === values[name])}
+              onChange={option => setFieldValue(name, option.value)}
+            />
+          ) : (
+            <div className='flex gap-2'>
+              <Field
+                className={`${children ? 'w-[50%]' : 'w-full'} shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${disabled ? 'disabled:bg-neutral-100 flex-grow' : ''}`}
+                type={type}
+                name={name}
+                disabled={disabled ? true : null}
+              />
+              {children}
+            </div>
+          )}
+          <ErrorMessage name={name} component="div" className="text-red-500 text-xs italic" />
+        </div>
+      </div>
+    );
+  };
+
+  if (!product.product_id && !product.productIsLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div>
-      <p>Product ID: {productId}</p>
-      <p>Product Category ID: {productCategoryId}</p>
-      <p>Product Name: {productName}</p>
-      <p>Product Description: {productDescription}</p>
-      <p>Product Price: {productPrice}</p>
-      <p>Product Images:</p>
-      {productImages && productImages.map((image, index) => (
-        <li key={index}>
-          Image ID: {image.product_image_id}, Image URL: {image.image_url}
-        </li>
-      ))}
+    <div className="w-[95%] flex-col sm:max-w-2xl md:max-w-4xl mx-auto mt-5">
+      <div className="p-4 bg-white border shadow-md rounded">
+        <div className="w-full bg-slate-100 text-center py-6 rounded-md mb-10">
+          <h1 className="font-semibold text-pink-500 text-lg">Edit Product</h1>
+        </div>
 
-    </div>
-  )
+        {product && (
+          <div className='flex flex-col gap-5'>
+            {/* Product Detail - START */}
+            <Formik
+              enableReinitialize
+              validationSchema={validationSchema}
+              initialValues={product}
+              onSubmit={values => {
+                dispatch(updateProduct(productId, values))
+              }}
+            >
+              {formik => (
+                <Form>
+                  {/* You may want to add more fields here, depending on what properties your product object has */}
+                  <h2 className='font-semibold text-pink-500 text-lg'>Product Detail</h2>
+                  <div className='border rounded-md p-5'>
+                    <div className='border-b'>
+                      <CustomInput label="Product Category" name="product_category_id" options={categories} />
+                      <CustomInput label="Product Name" name="product_name" type="text" />
+                      <CustomInput label="Product Description" name="product_description" type="text" />
+                      <CustomInput label="Product Price" name="product_price" type="text" />
+                      <CustomInput label="Product Weight (gram)" name="product_weight" type="text" />
+                      <CustomInput label="Product Stock" name="quantity_in_stock" type="text" disabled={true}>
+                        <div className='flex gap-2'>
+                          <div onClick={onIncreaseOpen} className='px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded cursor-pointer flex gap-2'>+ <span className='hidden sm:block'>Increase</span></div>
+                          <AdminIncreaseStockModal isOpen={isIncreaseOpen} onClose={onIncreaseClose} productId={product.product_id} currStock={product.quantity_in_stock} />
+                          <div onClick={onDecreaseOpen} className='px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded cursor-pointer flex gap-2'>-<span className='hidden sm:block'>Decrease</span></div>
+                          <AdminDecreaseStockModal isOpen={isDecreaseOpen} onClose={onDecreaseClose} productId={product.product_id} currStock={product.quantity_in_stock} storeInventoryId={product.store_inventory_id} />
+                        </div>
+                      </CustomInput>
+                    </div>
+
+                    {/* Submit button */}
+                    <div className="flex justify-start mt-3">
+                      <div className="flex justify-center items-center gap-2 w-full md:w-auto bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded">
+                        <FaSave />
+                        <button type="submit">
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Form>
+              )}
+            </Formik>
+            {/* Product Detail - END */}
+
+            {/* product image - START*/}
+            <div>
+              <h2 className='font-semibold text-pink-500 text-lg'>Product Image(s)</h2>
+              <div className='flex w-full p-4 gap-2 justify-between border rounded-md'>
+                {images.map((image, index) => (
+                  image ? (
+                    <div key={index} className="card border shadow-md rounded w-1/3">
+                      <img src={'http://localhost:8000/' + image.image_url} alt={`Product ${index + 1}`} className="w-full object-cover rounded-t" />
+                      <div className="p-4">
+                        <parent className="font-semibold">Image {index + 1}</parent>
+                        <div className='flex flex-row gap-1 sm:gap-2 mt-2 justify-center'>
+                          <div className="w-1/2">
+                            <div
+                              onClick={() => { document.getElementById(`fileInput-${index}`).click(); }}
+                              className="flex justify-center items-center gap-2 bg-green-500 hover:bg-green-700 text-white font-semibold py-2 w-full rounded cursor-pointer">
+                              <FaPen size={15} />
+                              <p className='hidden md:block'>Edit</p>
+                            </div>
+                            <input
+                              id={`fileInput-${index}`}
+                              type="file"
+                              className="hidden"
+                              onChange={(event) => handleImageUpload(event, index)}
+                            />
+                          </div>
+                          <div className="flex justify-center items-center gap-2 w-1/2 bg-rose-500 hover:bg-rose-700 text-white font-semibold py-2 md:px-4 rounded cursor-pointer"
+                            onClick={() => dispatch(deleteImage(image.product_image_id, productId))}
+                          >
+                            <FaTrash size={15} />
+                            <p className='hidden md:block'>Delete</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="card border shadow-md rounded w-1/3">
+                      <div className="p-4">
+                        <h3 className="font-semibold">Upload New Image</h3>
+                        <input
+                          type="file"
+                          className="mt-2 text-white font-bold rounded w-full"
+                          onChange={(event) => handleImageUpload(event, index)}
+                        />
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+            {/* product image - END*/}
+          </div>
+        )}
+      </div>
+    </div >
+  );
 }
 
-export default AdminEditProduct
+export default AdminEditProduct;

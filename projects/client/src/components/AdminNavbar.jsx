@@ -11,8 +11,9 @@ import { useNavigate } from "react-router-dom";
 import { resetAdmin } from "../features/adminSlice";
 
 const navigation = [
-  { name: "Dashboard", href: "/AdminDashboard", current: true },
-  { name: "Products", href: "/products", current: false },
+  { name: "Dashboard", href: "/admin/dashboard", current: true },
+  { name: "Products", href: "/admin/products", current: false },
+  { name: "Orders", href: "/admin/orders", current: false },
 ];
 
 function classNames(...classes) {
@@ -27,16 +28,16 @@ const AdminNavbar = () => {
     <Disclosure as="nav" className="bg-white color-gray sticky top-0 z-50 drop-shadow-md">
       {({ open }) => (
         <>
-          <div className="mx-auto max-w-7xl">
-            <div className="relative flex h-16 items-center justify-between">
-              <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
-                {/* Mobile menu button*/}
-                <Disclosure.Button className="inline-flex items-center justify-center rounded-md p-2 hover:text-white">
-                  <span className="sr-only">Open main menu</span>
-                  {open ? <XMarkIcon className="block h-6 w-6" aria-hidden="true" /> : <Bars3Icon className="block h-6 w-6" aria-hidden="true" />}
-                </Disclosure.Button>
-              </div>
+          <div className="py-7 flex justify-around md:py-4">
+            <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
+              {/* Mobile menu button*/}
+              <Disclosure.Button className="inline-flex items-center justify-center rounded-md p-2 hover:text-white">
+                <span className="sr-only">Open main menu</span>
+                {open ? <XMarkIcon className="block h-6 w-6" aria-hidden="true" /> : <Bars3Icon className="block h-6 w-6" aria-hidden="true" />}
+              </Disclosure.Button>
+            </div>
 
+            <div className="absolute inset-y-0 right-0 flex gap-2 items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0 md:gap-3 lg:gap-6">
               <div className="flex flex-1 gap-5 items-center justify-center sm:items-stretch sm:justify-start">
                 <div className="hidden sm:block">
                   <div className="flex space-x-4">
@@ -71,7 +72,18 @@ const AdminNavbar = () => {
                     {adminGlobal.name}
                   </MenuButton>
                   <MenuList>
-                    <MenuItem>Profile</MenuItem>
+                    {adminGlobal.role === 99 ? (
+                      <MenuItem
+                        onClick={() => {
+                          nav("/admin/settings/users");
+                        }}
+                      >
+                        Add branch admin
+                      </MenuItem>
+                    ) : (
+                      <></>
+                    )}
+
                     <MenuItem
                       onClick={() => {
                         alert("logging out");

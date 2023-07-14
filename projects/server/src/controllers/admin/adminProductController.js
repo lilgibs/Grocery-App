@@ -1,6 +1,6 @@
 const { db, query } = require("../../config/db");
 const { validationResult } = require("express-validator");
-const { handleValidationErrors } = require("../../utils/errorHandlers");
+const { handleValidationErrors, handleServerError } = require("../../utils/errorHandlers");
 const path = require('path');
 const fs = require('fs');
 
@@ -16,6 +16,7 @@ module.exports = {
       });
     } catch (error) {
       console.log(error)
+      handleServerError(error, next);
     }
   },
   getStoreProducts: async (req, res, next) => {
@@ -46,7 +47,6 @@ module.exports = {
       const total = countResult[0].total;
 
       // Menggabungkan tabel products, store_inventory, dan stores berdasarkan product_id dan store_id
-      // Menambahkan klausa WHERE untuk menentukan store_id
       let sqlQuery = `
         SELECT 
           si.store_inventory_id,
@@ -82,13 +82,19 @@ module.exports = {
       });
     } catch (error) {
       console.log(error)
+      handleServerError(error, next);
     }
   },
   getProductById: async (req, res, next) => {
     const { productId } = req.params;
+    const storeId = req.admin.adminStoreId
+
     try {
       const sqlProductQuery = `SELECT * FROM products WHERE product_id = ${db.escape(productId)}`;
       const productResult = await query(sqlProductQuery);
+
+      const sqlStoreInventory = `SELECT * FROM store_inventory WHERE product_id = ${db.escape(productId)} AND store_id = ${db.escape(storeId)}`;
+      const storeInventoryResult = await query(sqlStoreInventory);
 
       if (productResult.length > 0) {
         const sqlImageQuery = `SELECT * FROM product_images WHERE product_id = ${db.escape(productId)}`;
@@ -100,6 +106,10 @@ module.exports = {
           product_name: productResult[0].product_name,
           product_description: productResult[0].product_description,
           product_price: productResult[0].product_price,
+          product_weight: productResult[0].product_weight,
+          store_inventory_id: storeInventoryResult[0].store_inventory_id,
+          quantity_in_stock: storeInventoryResult[0].quantity_in_stock,
+          store_id: storeInventoryResult[0].store_id,
           product_images: imageResult,
         };
 
@@ -120,7 +130,7 @@ module.exports = {
     }
   },
   addProduct: async (req, res, next) => {
-    const { store_id, product_category_id, product_name, product_description, product_price, quantity_in_stock } = req.body;
+    const { store_id, product_category_id, product_name, product_description, product_price, product_weight, quantity_in_stock } = req.body;
     const errors = validationResult(req);
 
     try {
@@ -139,7 +149,22 @@ module.exports = {
       const checkProductQuery = `SELECT * FROM products WHERE product_name = ${db.escape(product_name)}`
       const existingProduct = await query(checkProductQuery);
 
-      // Jika produk sudah ada, langsung tambahkan data ke store_inventory
+      // Jika product sudah ada, check apakah produk yang diinput sudah ada di inventory
+      if (existingProduct.length > 0) {
+        const checkStoreInventory = `SELECT * FROM store_inventory WHERE store_id = ${db.escape(store_id)} AND product_id = ${db.escape(existingProduct[0].product_id)}`
+        const existingStoreInventory = await query(checkStoreInventory);
+
+        // Jika pasangan store_id dan product_id sudah ada, lemparkan error
+        if (existingStoreInventory.length > 0) {
+          throw {
+            status_code: 409,
+            message: "Failed to add product. Store already has the chosen product.",
+            errors: errors.array(),
+          }
+        }
+      }
+
+      // Jika produk sudah ada dan belum ada di inventory store, langsung tambahkan data ke store_inventory
       if (existingProduct.length > 0) {
         const productId = existingProduct[0].product_id;
 
@@ -169,13 +194,15 @@ module.exports = {
           product_category_id,
           product_name, 
           product_description,
-          product_price
+          product_price,
+          product_weight
         ) 
         VALUES (
           ${db.escape(product_category_id)},
           ${db.escape(product_name)},
           ${db.escape(product_description)},
-          ${db.escape(product_price)}
+          ${db.escape(product_price)},
+          ${db.escape(product_weight)}
         )`;
       const resultProduct = await query(sqlQueryProduct)
       const productId = resultProduct.insertId
@@ -213,57 +240,39 @@ module.exports = {
     } catch (error) {
       // Rollback transaksi jika terjadi kesalahan
       await query('ROLLBACK');
-
       handleServerError(error, next);
       console.log(error)
     }
   },
   updateProduct: async (req, res, next) => {
-    const { product_category_name } = req.body
-    const { categoryId } = req.params
+    const { product_category_id, product_name, product_description, product_price, product_weight } = req.body;
+    const { productId } = req.params;
     const errors = validationResult(req);
 
     try {
+      console.log(`Update product id:${productId} `)
       handleValidationErrors(errors);
 
-      //Ambil lokasi file gambar
-      const sqlQueryGetImage = `
-        SELECT product_category_image FROM product_categories
-        WHERE
-          product_category_id = ${db.escape(categoryId)}
-      `
-      const resultGetImage = await query(sqlQueryGetImage)
-      const currentImagePath = resultGetImage[0]?.product_category_image
-
-      //File gambar baru
-      let newImagePath = currentImagePath
-      if (req.file) {
-        newImagePath = 'uploads/' + req.file.filename;
-      }
-
       const sqlQuery = `
-        UPDATE product_categories 
+        UPDATE products
         SET 
-          product_category_name = ${db.escape(product_category_name)},
-          product_category_image = ${db.escape(newImagePath)}
+          product_category_id = ${db.escape(product_category_id)},
+          product_name = ${db.escape(product_name)},
+          product_description = ${db.escape(product_description)},
+          product_price = ${db.escape(product_price)},
+          product_weight = ${db.escape(product_weight)}
         WHERE 
-          product_category_id = ${db.escape(categoryId)}
+          product_id = ${db.escape(productId)}
       `;
       const result = await query(sqlQuery);
 
-      if (req.file && currentImagePath) {
-        const absolutePath = path.resolve(__dirname, '..', '..', 'uploads', path.basename(currentImagePath))
-        if (fs.existsSync(absolutePath)) {
-          fs.unlinkSync(absolutePath)
-        }
-      }
-
       res.status(200).json({
-        message: "Product category updated",
-        data: result
+        message: "Product updated",
+        data: result,
       });
     } catch (error) {
       handleServerError(error, next);
+      console.log(error)
     }
   },
   deleteProduct: async (req, res, next) => {
@@ -288,12 +297,21 @@ module.exports = {
       });
     } catch (error) {
       console.log(error)
+      handleServerError(error, next);
     }
   },
   hardDeleteProduct: async (req, res, next) => {
     const { categoryId } = req.params
+    const adminRole = req.admin.adminRole;
 
     try {
+      if (adminRole !== 99) {
+        throw {
+          status_code: 403,
+          message: "Access denied. You are not authorized to access this route.",
+        };
+      }
+
       //Ambil lokasi file gambar
       const sqlQueryGetImage = `
         SELECT product_category_image FROM product_categories 
@@ -324,6 +342,7 @@ module.exports = {
       });
     } catch (error) {
       console.log(error)
+      handleServerError(error, next);
     }
-  }
+  },
 }
