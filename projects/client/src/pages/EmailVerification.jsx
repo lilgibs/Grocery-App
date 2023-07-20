@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import * as Yup from "yup";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { useToast } from "@chakra-ui/react";
-import { reSendVerificationEmail } from "../api/authApi";
+import { reSendVerificationEmail } from "../api/AuthApi";
 import CustomSpinner from "../components/Spinner";
 
 const EmailVerification = () => {
