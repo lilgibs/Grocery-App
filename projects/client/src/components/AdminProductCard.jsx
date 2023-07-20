@@ -3,7 +3,7 @@ import { FaPen, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { formatRupiah } from '../utils/formatRupiah'
 import axios from 'axios';
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button } from "@chakra-ui/react"
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 function AdminProductCard({ products, getProductsData, page, setPage }) {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -24,7 +24,7 @@ function AdminProductCard({ products, getProductsData, page, setPage }) {
 
     try {
       const response = await axios.delete(
-        `http://localhost:8000/api/admin/products/${toBeDeleted}`,
+        `${process.env.REACT_APP_API_BASE_URL}/admin/products/${toBeDeleted}`,
         {
           headers: {
             'Authorization': `Bearer ${adminToken}`
@@ -58,7 +58,7 @@ function AdminProductCard({ products, getProductsData, page, setPage }) {
             <div className="w-[80%] md:w-3/4 flex flex-row border-gray-200 rounded overflow-hidden gap-2 px-1">
               <img
                 className="w-16 h-16 rounded-md my-auto"
-                src={"http://localhost:8000/" + product.image_url}
+                src={process.env.REACT_APP_API_IMG_URL + product.image_url}
                 alt=""
               />
               <div className='w-1/2 md:w-1/3'>
@@ -79,14 +79,14 @@ function AdminProductCard({ products, getProductsData, page, setPage }) {
             </div>
             <div className="w-[20%] md:w-1/4 flex flex-col justify-center gap-1 items-center border-l-2">
               <div
-                className="px-2 py-2 rounded bg-teal-500 hover:bg-teal-600 font-semibold text-white w-1/2 flex items-center justify-center gap-1 cursor-pointer"
+                className="px-2 py-2 md:py-1 rounded bg-teal-500 hover:bg-teal-600 font-semibold text-white w-1/2 flex items-center justify-center gap-1 cursor-pointer"
                 onClick={() => navigate(`/admin/products/${product.product_id}`)}
               >
                 <FaPen size={15} />
                 <p className='hidden md:block'>Edit</p>
               </div>
               <div
-                className="px-2 py-2 rounded bg-rose-500 hover:bg-rose-600 font-semibold text-white w-1/2 flex items-center justify-center gap-1 cursor-pointer"
+                className="px-2 py-2 md:py-1 rounded bg-rose-500 hover:bg-rose-600 font-semibold text-white w-1/2 flex items-center justify-center gap-1 cursor-pointer"
                 onClick={() => handleDeleteProduct(product.product_id)}
               >
                 <FaTrash size={15} />
@@ -96,25 +96,8 @@ function AdminProductCard({ products, getProductsData, page, setPage }) {
           </div>
         </div>
       ))}
-      <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Confirm Deletion</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            Are you sure you want to delete this product?
-          </ModalBody>
-
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={() => setModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button colorScheme="red" onClick={confirmDeleteProduct}>
-              Delete
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <DeleteConfirmationModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} onConfirm={confirmDeleteProduct}
+      />
     </>
   )
 }

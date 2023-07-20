@@ -56,7 +56,6 @@ function AdminStockHistory() {
 
   const handleSetDate = (event) => {
     event.preventDefault();
-    console.log(startDate);
     if (endDate < startDate) {
       alert("End date can't be lower than start date");
       return;
@@ -226,7 +225,7 @@ function AdminStockHistory() {
           {/* Filter - END */}
           <div className="hidden lg:flex gap-3 items-center">
             <form className="flex" onSubmit={handleSetDate}>
-              <div className="flex items-center gap-1 border p-1">
+              <div className="flex items-center gap-1 border rounded-s p-1">
                 <label htmlFor="start-date">Start Date:</label>
                 <input
                   className="border rounded p-1"
