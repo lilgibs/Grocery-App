@@ -50,11 +50,11 @@ export const cartSlice = createSlice({
 export const { setCart, setShippingCourierCart, setShippingOption, setShippingAddress, resetCart, setCartItems, updateCartCount, resetCartItems } = cartSlice.actions;
 export default cartSlice.reducer;
 
-export function fetchCart(user) {
+export function fetchCart(user, store) {
   return async (dispatch) => {
     try {
       //console.log(user);
-      const response = await Axios.get(`http://localhost:8000/api/cart/?userId=${user}`);
+      const response = await Axios.get(`${process.env.REACT_APP_API_BASE_URL}/cart/?userId=${user}&storeId=${store}`);
       let cartItems = response.data.cart;
       console.log(cartItems);
 

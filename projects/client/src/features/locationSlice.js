@@ -11,6 +11,7 @@ export const locationSlice = createSlice({
       city: "",
       nearestStore: "",
     },
+    isLoaded: false,
   },
   reducers: {
     setLocation: (state, action) => {
@@ -26,6 +27,9 @@ export const locationSlice = createSlice({
         city: "",
         nearestStore: "",
       };
+    },
+    setLoaded: (state, action) => {
+      state.isLoaded = action.payload;
     },
   },
 });
@@ -47,9 +51,7 @@ export function getCityStore(latitude, longitude) {
         dispatch(setLocation(location));
       }
 
-      //
-
-      let stores = await Axios.get("http://localhost:8000/api/stores");
+      let stores = await Axios.get(`${process.env.REACT_APP_API_BASE_URL}/stores`);
       if (stores) {
         let storeArray = stores.data.data;
         let storeDistances = [];
@@ -76,9 +78,11 @@ export function getCityStore(latitude, longitude) {
       }
     } catch (error) {
       console.error(error.response);
+    } finally {
+      dispatch(setLoaded(true));
     }
   };
 }
 
-export const { setLocation, resetLocation, setNearestStore } = locationSlice.actions;
+export const { setLocation, resetLocation, setNearestStore, setLoaded } = locationSlice.actions;
 export default locationSlice.reducer;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchCategories } from "../api/CategoryApi";
+import { fetchCategories } from "../api/adminCategoryApi";
 import Select from "react-select";
 import { fetchProducts } from "../api/userApi";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -10,6 +10,7 @@ import ProductCard from "../components/ProductCard";
 import ProductNotFound from "../components/ProductNotFound";
 import Pagination from "../components/Pagination";
 import { sortOptions } from '../utils/sortOptions';
+import Footer from "../components/Footer";
 
 function Products() {
   const [products, setProducts] = useState([]);
@@ -55,6 +56,7 @@ function Products() {
     let selected = data.selected + 1; // react-paginate mulai dari 0
     searchParams.set("page", selected);
     setSearchParams(new URLSearchParams(searchParams.toString()));
+    window.scrollTo(0, 0);
   };
 
   useEffect(() => {
@@ -82,8 +84,8 @@ function Products() {
   return (
     <div className="flex flex-col gap-5">
       <div className="w-full">
-        <img className="hidden sm:block" src={`http://localhost:8000/uploads/products_banner.jpg`} alt="" />
-        <img className="sm:hidden" src={`http://localhost:8000/uploads/products_banner2.jpg`} alt="" />
+        <img className="hidden sm:block" src={process.env.REACT_APP_API_UPLOAD_URL + `/products_banner.jpg`} alt="" />
+        <img className="sm:hidden" src={process.env.REACT_APP_API_UPLOAD_URL + `/products_banner2.jpg`} alt="" />
       </div>
       <div className="md:w-[95%] xl:max-w-screen-xl mx-auto w-full">
         <div className="flex gap-5 min-h-screen">
@@ -105,7 +107,7 @@ function Products() {
                         ${selectedCategory === category.label.toLowerCase() ? "font-semibold border-green-500 text-green-500" : ""}`}
                       onClick={() => handleSetCategory(category.label.toLowerCase())}
                     >
-                      <img className="h-5" src={`http://localhost:8000/${category.image}`} alt="" />
+                      <img className="h-5" src={`${process.env.REACT_APP_API_IMG_URL + category.image}`} alt="" />
                       <p className="">{category.label}</p>
                     </div>
                   ))}
@@ -178,7 +180,7 @@ function Products() {
           {/* Content - END */}
         </div>
       </div>
-      <div className="h-60 bg-red-500"></div>
+      <Footer />
     </div>
   );
 }
