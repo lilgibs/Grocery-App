@@ -4,9 +4,11 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { changePassword } from "../api/authApi";
+import { useCustomToast } from "../hooks/useCustomToast";
 
 const ChangePassword = () => {
   const nav = useNavigate();
+  const { showSuccessToast, showErrorToast } = useCustomToast();
 
   const userGlobal = useSelector((state) => state.user.user);
   const userToken = localStorage.getItem("user_token");
@@ -35,7 +37,7 @@ const ChangePassword = () => {
         <div className="">
           <img
             className="mx-auto h-10 w-auto"
-            src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
+            src={process.env.REACT_APP_API_UPLOAD_URL + "/company-logo.png"}
             alt="Your Company"
           />
           <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
@@ -51,13 +53,16 @@ const ChangePassword = () => {
             }}
             validationSchema={changePasswordSchema}
             onSubmit={async (value) => {
-              const response = await changePassword(
-                value,
-                userGlobal.user_id,
-                userToken
-              );
-              if (response) {
+              try {
+                const response = await changePassword(
+                  value,
+                  userGlobal.user_id,
+                  userToken
+                );
+                showSuccessToast("Password changed successfully");
                 nav("/profile");
+              } catch (error) {
+                showErrorToast(error);
               }
             }}
           >

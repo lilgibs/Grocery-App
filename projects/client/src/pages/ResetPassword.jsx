@@ -3,9 +3,11 @@ import * as Yup from "yup";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { useNavigate, useParams } from "react-router-dom";
 import { resetPassword } from "../api/authApi";
+import { useCustomToast } from "../hooks/useCustomToast";
 
 const ResetPassword = () => {
   let { token } = useParams();
+  const { showSuccessToast, showErrorToast } = useCustomToast();
   const nav = useNavigate();
 
   const ValidationSchema = Yup.object().shape({
@@ -26,7 +28,7 @@ const ResetPassword = () => {
         <div className="">
           <img
             className="mx-auto h-10 w-auto"
-            src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
+            src={process.env.REACT_APP_API_UPLOAD_URL + "/company-logo.png"}
             alt="Your Company"
           />
           <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
@@ -39,9 +41,12 @@ const ResetPassword = () => {
             initialValues={{ newPassword: "", repeatNewPassword: "" }}
             validationSchema={ValidationSchema}
             onSubmit={async (value) => {
-              const result = await resetPassword(value, token);
-              if (result) {
+              try {
+                await resetPassword(value, token);
+                showSuccessToast("Password reseted successfully");
                 nav("/login");
+              } catch (error) {
+                showErrorToast(error);
               }
             }}
           >

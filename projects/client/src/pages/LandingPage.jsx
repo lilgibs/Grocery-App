@@ -13,6 +13,9 @@ import Slider from "react-slick";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
 import ProductNotFound from "../components/ProductNotFound";
+import { setLocation } from "../features/locationSlice";
+//test alert distance
+import { useDisclosure, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton } from "@chakra-ui/react";
 
 const LandingPage = () => {
   const [products, setProducts] = useState([]);
@@ -21,6 +24,7 @@ const LandingPage = () => {
   const { store_id, store_name } = useSelector((state) => state.location.location.nearestStore);
   const dispatch = useDispatch();
   const nearestStore = useSelector((state) => state.location.location.nearestStore.store_name);
+  const nearestDistance = useSelector((state) => state.location.location.kmToNearestStore);
   const navigate = useNavigate();
 
   //carousel
@@ -38,15 +42,12 @@ const LandingPage = () => {
 
   const [slider, setSlider] = useState(<Slider />);
 
-  // These are the breakpoints which changes the position of the
-  // buttons as the screen size changes
   const top = useBreakpointValue({ base: "90%", md: "50%" });
   const side = useBreakpointValue({ base: "30%", md: "10px" });
 
-  // These are the images used in the slide
   const cards = [`${process.env.REACT_APP_API_UPLOAD_URL}/banner1.png`, `${process.env.REACT_APP_API_UPLOAD_URL}/banner2.png`, `${process.env.REACT_APP_API_UPLOAD_URL}/banner3.png`];
 
-  //---------------------------------------------
+  //carousel end
 
   useEffect(() => {
     const getCategories = async () => {
@@ -67,6 +68,15 @@ const LandingPage = () => {
     return productName.replace(/\s+/g, "-").toLowerCase();
   };
 
+  useEffect(() => {
+    if (nearestDistance > 65) {
+      onOpen();
+    }
+  });
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = React.useRef();
+
   return (
     <div className="bg-white">
       <div className="relative isolate lg:px-20">
@@ -76,6 +86,52 @@ const LandingPage = () => {
             <a className="text-green-500"> {nearestStore}</a>
           </h3>
         </div>
+
+        {/* alert distance */}
+
+        <AlertDialog size="lg" isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose}>
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                ⚠ Nearest branch is too far away
+              </AlertDialogHeader>
+
+              <AlertDialogBody>
+                <Text mb="2">Sorry, we are unnable to service your location at the moment.</Text>
+                <Text>You may browse our products, but you'd need to change your address to make orders.</Text>
+              </AlertDialogBody>
+
+              <AlertDialogFooter>
+                <Button
+                  colorScheme="green"
+                  variant="outline"
+                  onClick={() => {
+                    navigate("/products");
+                  }}
+                  ml={3}
+                >
+                  Browse products
+                </Button>
+                <Button
+                  colorScheme="green"
+                  onClick={
+                    userToken
+                      ? () => {
+                          navigate("/profile");
+                        }
+                      : () => {
+                          navigate("/login");
+                        }
+                  }
+                  ml={3}
+                >
+                  Change address
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
+        {/*  */}
 
         <Box position={"relative"} height={"450px"} width={"full"} overflow={"hidden"}>
           <link rel="stylesheet" type="text/css" charSet="UTF-8" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.6.0/slick.min.css" />
@@ -114,10 +170,13 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="mt-8 flex gap-3 justify-center">
-            {categories.map((category) => (
-              <Button bg={categories.indexOf(category) % 2 === 0 ? "green.200" : "pink.100"} color="gray.700" h={{ base: "80px", md: "120px", lg: "150px" }} w={{ base: "80px", md: "120px", lg: "150px" }} fontSize="sm">
-                {category.label}
+          <div className="mt-8 grid grid-cols-4 gap-3 md:flex">
+            {categories.slice(0, 8).map((category) => (
+              <Button variant="outline" colorScheme="green" h={{ base: "80px", md: "120px", lg: "150px" }} w={{ base: "80px", md: "120px", lg: "150px" }} fontSize="sm" onClick={() => navigate(`/products?category=${category.label}`)}>
+                <div className="grid grid-row-2 justify-center">
+                  <img className="h-5 mx-auto mb-1 md:h-7 md:mb-2" src={`${process.env.REACT_APP_API_IMG_URL + category.image}`} alt="" />
+                  <a>{category.label}</a>
+                </div>
               </Button>
             ))}
           </div>
@@ -141,7 +200,6 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* <div className="mt-7 grid grid-cols-2 lg:grid-cols-4 gap-2"> */}
           {products.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-5 h-auto">
               {products.slice(0, 6).map((product) => (
@@ -151,7 +209,6 @@ const LandingPage = () => {
           ) : (
             <ProductNotFound />
           )}
-          {/* </div> */}
         </div>
 
         <br />
