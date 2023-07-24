@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 function NotFound() {
   const nav = useNavigate();
-  console.log(process.env.REACT_APP_API_UPLOAD_URL + `/404-icon.png`)
 
   return (
     <div className="flex flex-col justify-center items-center m-7 gap-8">
@@ -20,7 +19,7 @@ function NotFound() {
       </p>
       <div className="flex gap-5">
         <button
-          className="bg-blue-500 hover:bg-blue-600 font-semibold text-white py-2 px-4 rounded-md"
+          className="bg-green-600 hover:bg-green-700 font-semibold text-white py-2 px-4 rounded-md"
           onClick={() => {
             nav("/");
           }}

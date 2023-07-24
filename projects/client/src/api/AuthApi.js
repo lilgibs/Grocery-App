@@ -7,10 +7,10 @@ export async function resetPasswordEmail(data) {
       data
     );
     if (response) {
-      alert(response.data.message);
+      return response.data.message;
     }
   } catch (error) {
-    alert(error.response.data);
+    return error.response.data;
   }
 }
 
@@ -26,11 +26,10 @@ export async function changePassword(data, user_id, token) {
       }
     );
     if (response) {
-      alert(response.data.message);
       return true;
     }
   } catch (error) {
-    alert(error.response.data);
+    return error.response.data;
   }
 }
 
@@ -46,11 +45,10 @@ export async function resetPassword(data, token) {
       }
     );
     if (response) {
-      alert(response.data.message);
       return true;
     }
   } catch (error) {
-    alert(error.response.data);
+    return error.response.data;
   }
 }
 

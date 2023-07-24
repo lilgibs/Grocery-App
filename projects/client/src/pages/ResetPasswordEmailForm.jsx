@@ -2,8 +2,11 @@ import React from "react";
 import * as Yup from "yup";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { resetPasswordEmail } from "../api/AuthApi";
+import { useCustomToast } from "../hooks/useCustomToast";
 
 const ResetPasswordEmailForm = () => {
+  const { showSuccessToast, showErrorToast } = useCustomToast();
+
   const ValidationSchema = Yup.object().shape({
     email: Yup.string()
       .email("Invalid email format")
@@ -16,7 +19,7 @@ const ResetPasswordEmailForm = () => {
         <div className="">
           <img
             className="mx-auto h-10 w-auto"
-            src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
+            src={process.env.REACT_APP_API_UPLOAD_URL + "/company-logo.png"}
             alt="Your Company"
           />
           <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
@@ -28,8 +31,13 @@ const ResetPasswordEmailForm = () => {
           <Formik
             initialValues={{ email: "" }}
             validationSchema={ValidationSchema}
-            onSubmit={(value) => {
-              resetPasswordEmail(value);
+            onSubmit={async (value) => {
+              try {
+                const result = await resetPasswordEmail(value);
+                showSuccessToast(result);
+              } catch (error) {
+                showErrorToast(error);
+              }
             }}
           >
             {(props) => {
