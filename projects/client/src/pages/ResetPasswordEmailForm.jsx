@@ -1,7 +1,7 @@
 import React from "react";
 import * as Yup from "yup";
 import { Formik, Form, Field, ErrorMessage } from "formik";
-import { resetPasswordEmail } from "../api/authApi";
+import { resetPasswordEmail } from "../api/AuthApi";
 import { useCustomToast } from "../hooks/useCustomToast";
 
 const ResetPasswordEmailForm = () => {
