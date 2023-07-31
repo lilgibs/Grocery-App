@@ -43,3 +43,6 @@ Run command on server project.
 ### `npm run install:server`
 
 Install dependency in server project. Use `npm install:server:dev` for dev dependencies.
+
+### `API Design`
+https://docs.google.com/spreadsheets/d/11Ng928H4y2yn2egQg__U7UdtZeqexkxeWcH0hWbSisc/edit#gid=490429579
